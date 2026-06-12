@@ -15,6 +15,7 @@ public class App {
     private static final int DEFAULT_MAP_WIDTH = 10;
     private static final int DEFAULT_MAP_HEIGHT = 8;
     private static final Difficulty DEFAULT_DIFFICULTY = Difficulty.NORMAL;
+    private static final String PLAYER_CAUGHT_MESSAGE = "An enemy got you. You lose!";
     private static final String CLEAR_SCREEN = "\u001b[H\u001b[2J";
     private static final Map<String, Direction> TEXT_COMMAND_TO_DIRECTION = Map.ofEntries(
             Map.entry("w", Direction.UP),
@@ -74,7 +75,7 @@ public class App {
             }
 
             if (enemies.contains(gameState.playerPosition())) {
-                System.out.println("An enemy got you. You lose!");
+                System.out.println(PLAYER_CAUGHT_MESSAGE);
                 break;
             }
 
@@ -107,7 +108,7 @@ public class App {
                     && (parsedInput.action() == InputAction.MOVE || parsedInput.action() == InputAction.WAIT)) {
                 boolean playerCaught = advanceEnemies(map, enemies, gameState.playerPosition(), exit, random);
                 if (playerCaught) {
-                    System.out.println("An enemy got you. You lose!");
+                    System.out.println(PLAYER_CAUGHT_MESSAGE);
                     break;
                 }
             }
@@ -255,6 +256,9 @@ public class App {
     }
 
     private static Direction parseDirection(String rawInput) {
+        if (rawInput == null) {
+            return null;
+        }
         Direction directMatch = EXACT_COMMAND_TO_DIRECTION.get(rawInput);
         if (directMatch != null) {
             return directMatch;
