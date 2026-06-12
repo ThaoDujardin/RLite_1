@@ -46,12 +46,14 @@ public class App {
 
             if (parsedInput.action() == InputAction.INVALID) {
                 System.out.println("Invalid input.");
+                pause(reader);
                 continue;
             }
 
             boolean moved = engine.performTurn(parsedInput.direction());
             if (parsedInput.action() == InputAction.MOVE && !moved) {
                 System.out.println("You bump into a wall.");
+                pause(reader);
             }
         }
     }
@@ -96,13 +98,18 @@ public class App {
             return rendered;
         }
 
-        char[] chars = rendered.toCharArray();
-        int rowStride = map.width() + 1;
-        int index = exit.y() * rowStride + exit.x();
-        if (index >= 0 && index < chars.length) {
-            chars[index] = 'X';
+        String[] lines = rendered.split("\n", -1);
+        if (exit.y() >= 0 && exit.y() < lines.length && exit.x() >= 0 && exit.x() < lines[exit.y()].length()) {
+            char[] lineChars = lines[exit.y()].toCharArray();
+            lineChars[exit.x()] = 'X';
+            lines[exit.y()] = new String(lineChars);
         }
-        return new String(chars);
+        return String.join("\n", lines);
+    }
+
+    private static void pause(BufferedReader reader) throws IOException {
+        System.out.print("Press Enter to continue...");
+        reader.readLine();
     }
 
     enum InputAction {
