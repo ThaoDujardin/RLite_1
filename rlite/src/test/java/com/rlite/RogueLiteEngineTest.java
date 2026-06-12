@@ -72,6 +72,10 @@ class RogueLiteEngineTest {
         assertEquals(App.InputAction.INVALID, invalid.action());
         assertNull(invalid.direction());
 
+        App.ParsedInput empty = App.parseInput("   ");
+        assertEquals(App.InputAction.INVALID, empty.action());
+        assertNull(empty.direction());
+
         App.ParsedInput nullInput = App.parseInput(null);
         assertEquals(App.InputAction.INVALID, nullInput.action());
         assertNull(nullInput.direction());

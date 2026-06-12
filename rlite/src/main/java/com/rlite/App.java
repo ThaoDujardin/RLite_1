@@ -3,10 +3,25 @@ package com.rlite;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 
 public class App {
     private static final int MAX_TURNS = 30;
     private static final String CLEAR_SCREEN = "\u001b[H\u001b[2J";
+    private static final Map<String, Direction> COMMAND_TO_DIRECTION = Map.ofEntries(
+            Map.entry("w", Direction.UP),
+            Map.entry("up", Direction.UP),
+            Map.entry("\u001b[A", Direction.UP),
+            Map.entry("s", Direction.DOWN),
+            Map.entry("down", Direction.DOWN),
+            Map.entry("\u001b[B", Direction.DOWN),
+            Map.entry("a", Direction.LEFT),
+            Map.entry("left", Direction.LEFT),
+            Map.entry("\u001b[D", Direction.LEFT),
+            Map.entry("d", Direction.RIGHT),
+            Map.entry("right", Direction.RIGHT),
+            Map.entry("\u001b[C", Direction.RIGHT)
+    );
 
     public static void main(String[] args) throws IOException {
         DungeonMap map = DungeonMap.simpleRoom(10, 8);
@@ -67,33 +82,19 @@ public class App {
             return ParsedInput.invalid();
         }
 
-        if ("\u001b[A".equals(rawInput)) {
-            return ParsedInput.move(Direction.UP);
-        }
-        if ("\u001b[B".equals(rawInput)) {
-            return ParsedInput.move(Direction.DOWN);
-        }
-        if ("\u001b[D".equals(rawInput)) {
-            return ParsedInput.move(Direction.LEFT);
-        }
-        if ("\u001b[C".equals(rawInput)) {
-            return ParsedInput.move(Direction.RIGHT);
+        Direction direction = parseDirection(rawInput);
+        if (direction != null) {
+            return ParsedInput.move(direction);
         }
 
         String input = rawInput.trim().toLowerCase();
-        if (input.isEmpty() || ".".equals(input) || "wait".equals(input)) {
+        if (".".equals(input) || "wait".equals(input)) {
             return ParsedInput.waitTurn();
         }
         if ("q".equals(input) || "quit".equals(input)) {
             return ParsedInput.quit();
         }
-        return switch (input) {
-            case "w", "up" -> ParsedInput.move(Direction.UP);
-            case "s", "down" -> ParsedInput.move(Direction.DOWN);
-            case "a", "left" -> ParsedInput.move(Direction.LEFT);
-            case "d", "right" -> ParsedInput.move(Direction.RIGHT);
-            default -> ParsedInput.invalid();
-        };
+        return ParsedInput.invalid();
     }
 
     private static String renderWithExit(DungeonMap map, Position player, Position exit) {
@@ -103,12 +104,27 @@ public class App {
         }
 
         String[] lines = rendered.split("\n", -1);
-        if (exit.y() >= 0 && exit.y() < lines.length && exit.x() >= 0 && exit.x() < lines[exit.y()].length()) {
+        if (isPositionWithinRenderedBounds(exit, lines)) {
             char[] lineChars = lines[exit.y()].toCharArray();
             lineChars[exit.x()] = 'X';
             lines[exit.y()] = new String(lineChars);
         }
         return String.join("\n", lines);
+    }
+
+    private static Direction parseDirection(String rawInput) {
+        Direction directMatch = COMMAND_TO_DIRECTION.get(rawInput);
+        if (directMatch != null) {
+            return directMatch;
+        }
+        return COMMAND_TO_DIRECTION.get(rawInput.trim().toLowerCase());
+    }
+
+    private static boolean isPositionWithinRenderedBounds(Position position, String[] lines) {
+        return position.y() >= 0
+                && position.y() < lines.length
+                && position.x() >= 0
+                && position.x() < lines[position.y()].length();
     }
 
     private static void pause(BufferedReader reader) throws IOException {
