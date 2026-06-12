@@ -2,6 +2,7 @@ package com.rlite;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -41,5 +42,30 @@ class RogueLiteEngineTest {
         assertFalse(engine.performTurn(null));
         assertEquals(new Position(1, 1), gameState.playerPosition());
         assertEquals(1, gameState.turnsSurvived());
+    }
+
+    @Test
+    void parseInputSupportsMovementWaitingAndQuit() {
+        App.ParsedInput up = App.parseInput("w");
+        assertEquals(App.InputAction.MOVE, up.action());
+        assertEquals(Direction.UP, up.direction());
+
+        App.ParsedInput right = App.parseInput("right");
+        assertEquals(App.InputAction.MOVE, right.action());
+        assertEquals(Direction.RIGHT, right.direction());
+
+        App.ParsedInput waitTurn = App.parseInput(".");
+        assertEquals(App.InputAction.WAIT, waitTurn.action());
+        assertNull(waitTurn.direction());
+
+        App.ParsedInput quit = App.parseInput("q");
+        assertEquals(App.InputAction.QUIT, quit.action());
+    }
+
+    @Test
+    void parseInputRejectsUnknownCommands() {
+        App.ParsedInput invalid = App.parseInput("teleport");
+        assertEquals(App.InputAction.INVALID, invalid.action());
+        assertNull(invalid.direction());
     }
 }
