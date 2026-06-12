@@ -8,18 +8,20 @@ import java.util.Map;
 public class App {
     private static final int MAX_TURNS = 30;
     private static final String CLEAR_SCREEN = "\u001b[H\u001b[2J";
-    private static final Map<String, Direction> COMMAND_TO_DIRECTION = Map.ofEntries(
+    private static final Map<String, Direction> TEXT_COMMAND_TO_DIRECTION = Map.ofEntries(
             Map.entry("w", Direction.UP),
             Map.entry("up", Direction.UP),
-            Map.entry("\u001b[A", Direction.UP),
             Map.entry("s", Direction.DOWN),
             Map.entry("down", Direction.DOWN),
-            Map.entry("\u001b[B", Direction.DOWN),
             Map.entry("a", Direction.LEFT),
             Map.entry("left", Direction.LEFT),
-            Map.entry("\u001b[D", Direction.LEFT),
             Map.entry("d", Direction.RIGHT),
-            Map.entry("right", Direction.RIGHT),
+            Map.entry("right", Direction.RIGHT)
+    );
+    private static final Map<String, Direction> EXACT_COMMAND_TO_DIRECTION = Map.ofEntries(
+            Map.entry("\u001b[A", Direction.UP),
+            Map.entry("\u001b[B", Direction.DOWN),
+            Map.entry("\u001b[D", Direction.LEFT),
             Map.entry("\u001b[C", Direction.RIGHT)
     );
 
@@ -88,6 +90,9 @@ public class App {
         }
 
         String input = rawInput.trim().toLowerCase();
+        if (input.isEmpty()) {
+            return ParsedInput.invalid();
+        }
         if (".".equals(input) || "wait".equals(input)) {
             return ParsedInput.waitTurn();
         }
@@ -113,11 +118,11 @@ public class App {
     }
 
     private static Direction parseDirection(String rawInput) {
-        Direction directMatch = COMMAND_TO_DIRECTION.get(rawInput);
+        Direction directMatch = EXACT_COMMAND_TO_DIRECTION.get(rawInput);
         if (directMatch != null) {
             return directMatch;
         }
-        return COMMAND_TO_DIRECTION.get(rawInput.trim().toLowerCase());
+        return TEXT_COMMAND_TO_DIRECTION.get(rawInput.trim().toLowerCase());
     }
 
     private static boolean isPositionWithinRenderedBounds(Position position, String[] lines) {
