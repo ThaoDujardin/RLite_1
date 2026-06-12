@@ -37,6 +37,10 @@ public class App {
 
             System.out.print("Move> ");
             String input = reader.readLine();
+            if (input == null) {
+                System.out.println("Input stream closed.");
+                break;
+            }
             ParsedInput parsedInput = parseInput(input);
 
             if (parsedInput.action() == InputAction.QUIT) {
@@ -60,7 +64,7 @@ public class App {
 
     static ParsedInput parseInput(String rawInput) {
         if (rawInput == null) {
-            return ParsedInput.quit();
+            return ParsedInput.invalid();
         }
 
         if ("\u001b[A".equals(rawInput)) {

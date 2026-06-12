@@ -71,5 +71,9 @@ class RogueLiteEngineTest {
         App.ParsedInput invalid = App.parseInput("teleport");
         assertEquals(App.InputAction.INVALID, invalid.action());
         assertNull(invalid.direction());
+
+        App.ParsedInput nullInput = App.parseInput(null);
+        assertEquals(App.InputAction.INVALID, nullInput.action());
+        assertNull(nullInput.direction());
     }
 }
