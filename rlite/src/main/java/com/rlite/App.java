@@ -3,10 +3,18 @@ package com.rlite;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 public class App {
-    private static final int MAX_TURNS = 30;
+    private static final int DEFAULT_MAP_WIDTH = 10;
+    private static final int DEFAULT_MAP_HEIGHT = 8;
+    private static final Difficulty DEFAULT_DIFFICULTY = Difficulty.NORMAL;
     private static final String CLEAR_SCREEN = "\u001b[H\u001b[2J";
     private static final Map<String, Direction> TEXT_COMMAND_TO_DIRECTION = Map.ofEntries(
             Map.entry("w", Direction.UP),
@@ -26,29 +34,47 @@ public class App {
     );
 
     public static void main(String[] args) throws IOException {
-        DungeonMap map = DungeonMap.simpleRoom(10, 8);
+        GameSetup setup;
+        try {
+            setup = parseGameSetup(args);
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Invalid game options: " + exception.getMessage());
+            System.out.println("Usage: --size=<width>x<height> --difficulty=<easy|normal|hard>");
+            return;
+        }
+
+        Random random = new Random();
+        DungeonMap map = DungeonMap.simpleRoom(setup.mapWidth(), setup.mapHeight());
         GameState gameState = new GameState(map, new Position(1, 1));
         RogueLiteEngine engine = new RogueLiteEngine(gameState);
         Position exit = new Position(map.width() - 2, map.height() - 2);
-
+        List<Position> enemies = initializeEnemies(map, gameState.playerPosition(), exit, setup.enemyCount(), random);
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         System.out.println("Reach X before turns run out.");
         System.out.println("Controls: W/A/S/D (or up/down/left/right), . to wait, q to quit.");
+        System.out.println("Difficulty: " + setup.difficulty().name().toLowerCase()
+                + " | Map: " + map.width() + "x" + map.height()
+                + " | Enemies: " + enemies.size());
 
         while (true) {
             System.out.print(CLEAR_SCREEN);
             System.out.flush();
-            System.out.println("Turns: " + gameState.turnsSurvived() + "/" + MAX_TURNS);
-            System.out.println(renderWithExit(map, gameState.playerPosition(), exit));
+            System.out.println("Turns: " + gameState.turnsSurvived() + "/" + setup.maxTurns());
+            System.out.println(renderWithActors(map, gameState.playerPosition(), exit, enemies));
 
             if (gameState.playerPosition().equals(exit)) {
                 System.out.println("You escaped. You win!");
                 break;
             }
 
-            if (gameState.turnsSurvived() >= MAX_TURNS) {
+            if (gameState.turnsSurvived() >= setup.maxTurns()) {
                 System.out.println("Out of time. You lose!");
+                break;
+            }
+
+            if (enemies.contains(gameState.playerPosition())) {
+                System.out.println("An enemy got you. You lose!");
                 break;
             }
 
@@ -76,6 +102,15 @@ public class App {
                 System.out.println("You bump into a wall.");
                 pause(reader);
             }
+
+            if (!gameState.playerPosition().equals(exit)
+                    && (parsedInput.action() == InputAction.MOVE || parsedInput.action() == InputAction.WAIT)) {
+                boolean playerCaught = advanceEnemies(map, enemies, gameState.playerPosition(), exit, random);
+                if (playerCaught) {
+                    System.out.println("An enemy got you. You lose!");
+                    break;
+                }
+            }
         }
     }
 
@@ -102,19 +137,121 @@ public class App {
         return ParsedInput.invalid();
     }
 
-    private static String renderWithExit(DungeonMap map, Position player, Position exit) {
+    static String renderWithActors(DungeonMap map, Position player, Position exit, List<Position> enemies) {
         String rendered = map.render(player);
-        if (player.equals(exit)) {
-            return rendered;
-        }
-
         String[] lines = rendered.split("\n", -1);
-        if (isPositionWithinRenderedBounds(exit, lines)) {
+        if (!player.equals(exit) && isPositionWithinRenderedBounds(exit, lines)) {
             char[] lineChars = lines[exit.y()].toCharArray();
             lineChars[exit.x()] = 'X';
             lines[exit.y()] = new String(lineChars);
         }
+
+        for (Position enemy : enemies) {
+            if (!enemy.equals(player) && isPositionWithinRenderedBounds(enemy, lines)) {
+                char[] lineChars = lines[enemy.y()].toCharArray();
+                lineChars[enemy.x()] = 'e';
+                lines[enemy.y()] = new String(lineChars);
+            }
+        }
         return String.join("\n", lines);
+    }
+
+    static GameSetup parseGameSetup(String[] args) {
+        int mapWidth = DEFAULT_MAP_WIDTH;
+        int mapHeight = DEFAULT_MAP_HEIGHT;
+        Difficulty difficulty = DEFAULT_DIFFICULTY;
+
+        for (String arg : args) {
+            if (arg == null || arg.isBlank()) {
+                continue;
+            }
+
+            if (arg.startsWith("--size=")) {
+                String value = arg.substring("--size=".length());
+                int separator = value.toLowerCase().indexOf('x');
+                if (separator <= 0 || separator >= value.length() - 1) {
+                    throw new IllegalArgumentException("size must use widthxheight format");
+                }
+                try {
+                    mapWidth = Integer.parseInt(value.substring(0, separator));
+                    mapHeight = Integer.parseInt(value.substring(separator + 1));
+                } catch (NumberFormatException exception) {
+                    throw new IllegalArgumentException("size must use numeric width and height");
+                }
+                continue;
+            }
+
+            if (arg.startsWith("--difficulty=")) {
+                String value = arg.substring("--difficulty=".length());
+                difficulty = Difficulty.from(value);
+                continue;
+            }
+
+            throw new IllegalArgumentException("Unknown option: " + arg);
+        }
+
+        if (mapWidth < 5 || mapHeight < 5) {
+            throw new IllegalArgumentException("map size must be at least 5x5");
+        }
+
+        return new GameSetup(mapWidth, mapHeight, difficulty.maxTurns(), difficulty.enemyCount(), difficulty);
+    }
+
+    static List<Position> initializeEnemies(
+            DungeonMap map, Position player, Position exit, int enemyCount, Random random) {
+        List<Position> floorTiles = new ArrayList<>();
+        for (int y = 1; y < map.height() - 1; y++) {
+            for (int x = 1; x < map.width() - 1; x++) {
+                Position candidate = new Position(x, y);
+                if (!candidate.equals(player) && !candidate.equals(exit)) {
+                    floorTiles.add(candidate);
+                }
+            }
+        }
+        Collections.shuffle(floorTiles, random);
+        return new ArrayList<>(floorTiles.subList(0, Math.min(enemyCount, floorTiles.size())));
+    }
+
+    static boolean advanceEnemies(
+            DungeonMap map, List<Position> enemies, Position player, Position exit, Random random) {
+        Set<Position> occupied = new HashSet<>(enemies);
+        List<Position> moved = new ArrayList<>(enemies.size());
+
+        for (Position enemy : enemies) {
+            occupied.remove(enemy);
+            Position nextPosition = chooseEnemyMove(enemy, player, map, exit, occupied, random);
+            moved.add(nextPosition);
+            occupied.add(nextPosition);
+        }
+
+        enemies.clear();
+        enemies.addAll(moved);
+        return enemies.contains(player);
+    }
+
+    private static Position chooseEnemyMove(
+            Position enemy, Position player, DungeonMap map, Position exit, Set<Position> occupied, Random random) {
+        List<Direction> directions = new ArrayList<>(List.of(Direction.values()));
+        Collections.shuffle(directions, random);
+
+        Position best = enemy;
+        int bestDistance = manhattanDistance(enemy, player);
+        for (Direction direction : directions) {
+            Position candidate = enemy.move(direction);
+            if (!map.isWalkable(candidate) || candidate.equals(exit) || occupied.contains(candidate)) {
+                continue;
+            }
+            int distance = manhattanDistance(candidate, player);
+            if (distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    private static int manhattanDistance(Position source, Position target) {
+        return Math.abs(source.x() - target.x()) + Math.abs(source.y() - target.y());
     }
 
     private static Direction parseDirection(String rawInput) {
@@ -142,6 +279,41 @@ public class App {
         WAIT,
         QUIT,
         INVALID
+    }
+
+    enum Difficulty {
+        EASY(40, 1),
+        NORMAL(30, 2),
+        HARD(24, 3);
+
+        private final int maxTurns;
+        private final int enemyCount;
+
+        Difficulty(int maxTurns, int enemyCount) {
+            this.maxTurns = maxTurns;
+            this.enemyCount = enemyCount;
+        }
+
+        int maxTurns() {
+            return maxTurns;
+        }
+
+        int enemyCount() {
+            return enemyCount;
+        }
+
+        static Difficulty from(String value) {
+            String normalized = value == null ? "" : value.trim().toUpperCase();
+            for (Difficulty difficulty : values()) {
+                if (difficulty.name().equals(normalized)) {
+                    return difficulty;
+                }
+            }
+            throw new IllegalArgumentException("difficulty must be easy, normal or hard");
+        }
+    }
+
+    record GameSetup(int mapWidth, int mapHeight, int maxTurns, int enemyCount, Difficulty difficulty) {
     }
 
     record ParsedInput(InputAction action, Direction direction) {
