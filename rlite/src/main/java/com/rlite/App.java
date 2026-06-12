@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 
 public class App {
     private static final int MAX_TURNS = 30;
+    private static final String CLEAR_SCREEN = "\u001b[H\u001b[2J";
 
     public static void main(String[] args) throws IOException {
         DungeonMap map = DungeonMap.simpleRoom(10, 8);
@@ -19,7 +20,7 @@ public class App {
         System.out.println("Controls: W/A/S/D (or up/down/left/right), . to wait, q to quit.");
 
         while (true) {
-            System.out.print("\u001b[H\u001b[2J");
+            System.out.print(CLEAR_SCREEN);
             System.out.flush();
             System.out.println("Turns: " + gameState.turnsSurvived() + "/" + MAX_TURNS);
             System.out.println(renderWithExit(map, gameState.playerPosition(), exit));
@@ -60,6 +61,19 @@ public class App {
             return ParsedInput.quit();
         }
 
+        if ("\u001b[A".equals(rawInput)) {
+            return ParsedInput.move(Direction.UP);
+        }
+        if ("\u001b[B".equals(rawInput)) {
+            return ParsedInput.move(Direction.DOWN);
+        }
+        if ("\u001b[D".equals(rawInput)) {
+            return ParsedInput.move(Direction.LEFT);
+        }
+        if ("\u001b[C".equals(rawInput)) {
+            return ParsedInput.move(Direction.RIGHT);
+        }
+
         String input = rawInput.trim().toLowerCase();
         if (input.isEmpty() || ".".equals(input) || "wait".equals(input)) {
             return ParsedInput.waitTurn();
@@ -68,10 +82,10 @@ public class App {
             return ParsedInput.quit();
         }
         return switch (input) {
-            case "w", "up", "\u001b[a" -> ParsedInput.move(Direction.UP);
-            case "s", "down", "\u001b[b" -> ParsedInput.move(Direction.DOWN);
-            case "a", "left", "\u001b[d" -> ParsedInput.move(Direction.LEFT);
-            case "d", "right", "\u001b[c" -> ParsedInput.move(Direction.RIGHT);
+            case "w", "up" -> ParsedInput.move(Direction.UP);
+            case "s", "down" -> ParsedInput.move(Direction.DOWN);
+            case "a", "left" -> ParsedInput.move(Direction.LEFT);
+            case "d", "right" -> ParsedInput.move(Direction.RIGHT);
             default -> ParsedInput.invalid();
         };
     }

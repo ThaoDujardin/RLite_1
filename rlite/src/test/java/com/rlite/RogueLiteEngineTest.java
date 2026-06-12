@@ -54,6 +54,10 @@ class RogueLiteEngineTest {
         assertEquals(App.InputAction.MOVE, right.action());
         assertEquals(Direction.RIGHT, right.direction());
 
+        App.ParsedInput arrowUp = App.parseInput("\u001b[A");
+        assertEquals(App.InputAction.MOVE, arrowUp.action());
+        assertEquals(Direction.UP, arrowUp.direction());
+
         App.ParsedInput waitTurn = App.parseInput(".");
         assertEquals(App.InputAction.WAIT, waitTurn.action());
         assertNull(waitTurn.direction());
