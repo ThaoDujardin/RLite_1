@@ -8,8 +8,7 @@
   <version>1.0-SNAPSHOT</version>
 
   <name>rlite</name>
-  <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
+  <url>https://github.com/ThaoDujardin/RLite_1</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
