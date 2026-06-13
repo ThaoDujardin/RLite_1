@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberVault - Cyberpunk Roguelike</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="hud">
+            <div class="hud-left">
+                <div class="stat">HP: <span id="health">100</span>/<span id="maxHealth">100</span></div>
+                <div class="stat">LEVEL: <span id="level">1</span></div>
+            </div>
+            <div class="hud-center">
+                <div class="title">[ CyberVault ]</div>
+            </div>
+            <div class="hud-right">
+                <div class="stat">ROOM: <span id="room">1</span></div>
+                <div class="stat">KILLS: <span id="kills">0</span></div>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="game-over-screen hidden">
+            <div class="game-over-content">
+                <h1>[ SYSTEM CORRUPTED ]</h1>
+                <p>Rooms Cleared: <span id="roomsCleared">0</span></p>
+                <p>Enemies Defeated: <span id="enemiesDefeated">0</span></p>
+                <button onclick="location.reload()">RESTART PROTOCOL</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="instructions">
+            <p>Z Q S D / ARROW KEYS MOVE | LEFT CLICK SHOOT | ESC PAUSE</p>
+
+    <div class="container">
+        <div class="game-wrapper">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
