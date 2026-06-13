@@ -19,7 +19,7 @@ mvn -q -DskipTests package
 java -cp target/rlite-1.0-SNAPSHOT.jar com.rlite.App
 ```
 
-Controls: `W/A/S/D` (or `up/down/left/right`), `.` to wait, `q` to quit. Reach `X` before turns run out (30 turns in default `normal` difficulty).
+Controls: `Z/Q/S/D` (or `up/down/left/right`) to move, `Space/Left click` to shoot.
 
 Optional gameplay parameters:
 
